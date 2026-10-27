@@ -385,7 +385,7 @@ table.tabela { border-collapse: separate; border-spacing: 0; width: 100%; font: 
 .espera .relogio { font: 800 20px var(--f-num); color: var(--ouro); margin-top: 4px; }
 .espera-txt { font: 600 13.5px var(--f-txt); letter-spacing: .01em; }
 
-/* caminhão da Lube na espera: estrada correndo, rodas girando, painéis caindo no baú */
+/* caminhão da Lube na espera: estrada correndo, painéis caindo no baú (a foto do portal; as rodas giram só no desenho de reserva) */
 .cam-cena { width: min(100%, 440px); margin: 0 auto; }
 .cam-cena svg { width: 100%; height: auto; display: block; overflow: visible; }
 .cam-corpo { animation: cam-bob .36s ease-in-out infinite alternate; }

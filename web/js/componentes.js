@@ -99,9 +99,39 @@ L.kpi = function (cfg) {
 };
 L.kpis = function () { var g = L.h("div", { class: "kpis" }); for (var i = 0; i < arguments.length; i++) L.add(g, arguments[i]); return g; };
 
-/* esperas: o caminhão da Lube (o mesmo desenho do portal) rodando, com painéis caindo no baú.
-   Os painéis ficam ATRÁS do baú no desenho, então ao descer eles somem para dentro dele. */
+/* esperas: o caminhão da Lube rodando, com painéis caindo no baú.
+   Desde 2026-10-27 é a FOTO do caminhão do portal (a mesma da abertura do Painel Lube e do vídeo do Lube Online:
+   caminhao-lube.webp, 1200 × 486, fundo transparente); o desenho de caminhaoSVG() fica só de reserva, se a foto não
+   carregar. Os painéis ficam ATRÁS do baú, então ao descer eles somem para dentro dele. */
 var camUid = 0;
+// painel pequeno (cartão com barras e uma linha); x = onde cai, d = atraso, h = alturas das barras
+function painelCaindo(x, d, h) {
+  return '<g transform="translate(' + x + ',0)"><g class="cam-painel" style="--d:' + d + 's">' +
+    '<rect width="96" height="62" rx="9" style="fill:var(--s2);stroke:var(--ouro);stroke-width:1.6"/>' +
+    '<rect x="9" y="9" width="34" height="5" rx="2.5" style="fill:var(--ouro)"/>' +
+    '<rect x="10" y="' + (52 - h[0]) + '" width="10" height="' + h[0] + '" rx="2" style="fill:var(--azul-lt)"/>' +
+    '<rect x="24" y="' + (52 - h[1]) + '" width="10" height="' + h[1] + '" rx="2" style="fill:var(--ouro)"/>' +
+    '<rect x="38" y="' + (52 - h[2]) + '" width="10" height="' + h[2] + '" rx="2" style="fill:var(--verm-lt)"/>' +
+    '<path d="M56 46L66 36L76 40L87 22" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="stroke:var(--azul-lt)"/></g></g>';
+}
+/* a foto ocupa x 40–640 e y 40–283 (600 × 243): o teto do baú fica em y ≈ 44 e as rodas encostam na estrada */
+function caminhaoFoto() {
+  var R = "#EE1B24";
+  var pulso = function (x, d) { return '<ellipse class="cam-pulso" cx="' + x + '" cy="46" rx="34" ry="6" fill="none" stroke-width="2" style="stroke:var(--ouro);--d:' + d + 's"/>'; };
+  return '<svg viewBox="0 -96 700 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Caminhão da Lube carregando os painéis">' +
+    // estrada: faixa escura com a pontilhada correndo para trás
+    '<rect x="0" y="281" width="700" height="24" rx="8" fill="#0c1530" opacity=".85"/>' +
+    '<line class="cam-estrada" x1="0" y1="293" x2="700" y2="293" stroke-width="3" stroke-dasharray="30 22" stroke-linecap="round" style="stroke:var(--ouro)"/>' +
+    // painéis caindo (atrás do caminhão)
+    painelCaindo(110, 0, [16, 28, 22]) + painelCaindo(250, 1.2, [24, 14, 30]) + painelCaindo(344, 2.4, [20, 32, 12]) +
+    // vento vermelho atrás, como no portal
+    '<g class="cam-vento"><line x1="-6" y1="130" x2="40" y2="130" stroke="' + R + '" stroke-width="3" stroke-linecap="round"/><line x1="-20" y1="156" x2="34" y2="156" stroke="' + R + '" stroke-width="3" stroke-linecap="round"/><line x1="-2" y1="182" x2="30" y2="182" stroke="' + R + '" stroke-width="3" stroke-linecap="round"/></g>' +
+    '<g class="cam-corpo"><ellipse cx="340" cy="282" rx="300" ry="8" fill="rgba(0,0,0,.35)"/>' +
+      '<image class="cam-foto" href="caminhao-lube.webp" x="40" y="40" width="600" height="243" preserveAspectRatio="xMidYMax meet"/></g>' +
+    // brilho no teto do baú quando o painel entra
+    pulso(110 + 48, 0) + pulso(250 + 48, 1.2) + pulso(344 + 48, 2.4) +
+  '</svg>';
+}
 function caminhaoSVG() {
   var N = "#1E2B8C", R = "#EE1B24", C = "#00A0E9", u = "cam" + (++camUid);
   var marca = '<g transform="translate(20,0) skewX(-10)"><path fill="NAVY" d="M24 6h34v56h42c6 0 10 4 10 10v12c0 10-8 18-18 18H24C12 102 4 94 4 82V26C4 14 12 6 24 6Z"/><path fill="RED" d="M68 6h36c6 0 10 4 10 10v32c0 3-2 4-5 4H68Z"/></g>';
@@ -112,16 +142,7 @@ function caminhaoSVG() {
       '<g class="cam-raio"><path d="M' + (cx - 14) + " 203H" + (cx + 14) + "M" + (cx - 7) + " 191L" + (cx + 7) + " 215M" + (cx - 7) + " 215L" + (cx + 7) + ' 191" stroke="#5B6577" stroke-width="3" stroke-linecap="round" fill="none"/></g>' +
       '<circle cx="' + cx + '" cy="203" r="5" fill="#3b4558"/>';
   }).join("");
-  // painel pequeno (cartão com barras e uma linha); x = onde cai, d = atraso, h = alturas das barras
-  var painel = function (x, d, h) {
-    return '<g transform="translate(' + x + ',0)"><g class="cam-painel" style="--d:' + d + 's">' +
-      '<rect width="96" height="62" rx="9" style="fill:var(--s2);stroke:var(--ouro);stroke-width:1.6"/>' +
-      '<rect x="9" y="9" width="34" height="5" rx="2.5" style="fill:var(--ouro)"/>' +
-      '<rect x="10" y="' + (52 - h[0]) + '" width="10" height="' + h[0] + '" rx="2" style="fill:var(--azul-lt)"/>' +
-      '<rect x="24" y="' + (52 - h[1]) + '" width="10" height="' + h[1] + '" rx="2" style="fill:var(--ouro)"/>' +
-      '<rect x="38" y="' + (52 - h[2]) + '" width="10" height="' + h[2] + '" rx="2" style="fill:var(--verm-lt)"/>' +
-      '<path d="M56 46L66 36L76 40L87 22" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="stroke:var(--azul-lt)"/></g></g>';
-  };
+  var painel = painelCaindo;
   var pulso = function (x, d) { return '<ellipse class="cam-pulso" cx="' + x + '" cy="64" rx="34" ry="6" fill="none" stroke-width="2" style="stroke:var(--ouro);--d:' + d + 's"/>'; };
   return '<svg viewBox="0 -96 700 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Caminhão da Lube carregando os painéis">' +
     '<defs><linearGradient id="' + u + 'b" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3BC4F9"/><stop offset="55%" stop-color="' + C + '"/><stop offset="100%" stop-color="#0084C6"/></linearGradient>' +
@@ -157,7 +178,9 @@ function caminhaoSVG() {
 L.espera = function (texto) {
   var t0 = performance.now();
   var rel = L.h("div", { class: "relogio num", text: "0,0 s" });
-  var cena = L.h("div", { class: "cam-cena", html: caminhaoSVG() });
+  var cena = L.h("div", { class: "cam-cena", html: caminhaoFoto() });
+  var foto = cena.querySelector(".cam-foto");
+  if (foto) foto.addEventListener("error", function () { cena.innerHTML = caminhaoSVG(); });   // sem a foto, o desenho de reserva
   var el = L.h("div", { class: "espera" }, cena, L.h("div", { class: "espera-txt" }, L.h("div", { text: texto || "Calculando a visão…" }), rel));
   var id = setInterval(function () { if (!el.isConnected) return clearInterval(id); rel.textContent = L.fNum((performance.now() - t0) / 1000, 1) + " s"; }, 100);
   return el;
