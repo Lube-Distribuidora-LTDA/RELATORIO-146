@@ -62,6 +62,16 @@ Mantido para bater: cartões regionais por **equipe** (supervisor) e participaç
 convivem, cada uma com o nome do que conta); ticket conta bonificação e troca como pedido; o gráfico mostra sempre o mês
 corrente.
 
+## No ar
+
+**https://relatorio-146.vercel.app** — projeto Vercel `relatorio-146` (Root `web`, Other, `gru1`, Node 22), deploy a cada
+push na `main`. **Só abre para quem tem acesso pelo Painel Lube** (guarda da Sentinela 1.3.0, `exige_login`; regra "só na
+rede da Lube" em observar, como os outros sistemas internos). O cartão no portal nasceu **inativo**: quem vê é decisão do
+Júlio.
+
+Variáveis da Vercel (Production e Preview): `SUPABASE_DB_HOST`, `SUPABASE_DB_PORT` (5432), `SUPABASE_DB_NAME`,
+`SUPABASE_DB_USER` e `SUPABASE_DB_PASSWORD` (Sensitive, cadastrada pelo Júlio). Variável nova só vale em deploy novo.
+
 ## Rodar na máquina
 
 `INICIAR.bat` (porta 3106). O servidor local usa o `ENV` do agente ou do Inventário que já existe na máquina e só
