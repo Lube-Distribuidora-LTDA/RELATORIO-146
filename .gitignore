@@ -1,0 +1,7 @@
+node_modules/
+ENV
+.env
+*.log
+__pycache__/
+.vercel/
+conferencia/referencias-power-bi.json
