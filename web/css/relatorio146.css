@@ -128,3 +128,23 @@
   .uf-pct { font-size: 18px; }
   .hoje-topo .v { font-size: 24px; }
 }
+
+/* tela lateral do pedido (pedido-lateral.js, 2026-10-29) */
+.dos-ped-ic { width: 64px; height: 64px; flex: none; border-radius: 16px; display: grid; place-items: center; background: var(--ouro-dim); box-shadow: 0 0 0 1px var(--ouro-linha); color: var(--ouro); }
+.dos-ped-ic svg { width: 30px; height: 30px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#dossie .dos-corpo > .kpis { margin-bottom: 18px; }
+#dossie .nota-rodape { margin-top: 12px; }
+.conta-ped { display: grid; gap: 2px; max-width: 640px; }
+.conta-ped .l { display: flex; justify-content: space-between; gap: 16px; padding: 8px 12px; border-radius: 10px; font: 500 13.5px var(--f-txt); color: var(--t2); }
+.conta-ped .l b { font: 600 14px var(--f-num); color: var(--t1); white-space: nowrap; }
+.conta-ped .l b.neg { color: var(--perigo); }
+.conta-ped .l.tot { background: var(--s2); color: var(--t1); font-weight: 700; }
+.conta-ped .l.tot b { color: var(--ouro-forte); font-weight: 700; }
+@media (max-width: 760px) {
+  #dossie { width: 100vw; }
+  .dos-cab { flex-wrap: wrap; padding: 16px; }
+  .dos-cab h2 { font-size: 22px; }
+  .dos-ped-ic { display: none; }
+  .dos-acoes { margin-left: 0; width: 100%; justify-content: flex-start; }
+  .dos-corpo { padding: 16px 14px 32px; }
+}

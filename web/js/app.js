@@ -226,6 +226,7 @@ function iniciar() {
   L.$("btn-atualizar").addEventListener("click", atualizarDados);
   document.addEventListener("keydown", function (ev) {
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return;
+    if (L.pedidoAberto && L.pedidoAberto()) return;
     if ((ev.key === "f" || ev.key === "F") && !ev.ctrlKey && !ev.metaKey) apresentar(!L.estado.apresentando);
     if (L.estado.apresentando) { if (ev.key === "ArrowRight") navegarPaginas(1); if (ev.key === "ArrowLeft") navegarPaginas(-1); }
   });

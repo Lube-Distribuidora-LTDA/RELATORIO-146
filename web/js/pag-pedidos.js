@@ -150,11 +150,12 @@ function render(raiz) {
       totais: function () { return [
         { rot: "Venda", valor: L.fBRL(venda, 2), pri: true }, { rot: "Pedidos", valor: L.fInt(n) },
         { rot: "Lucro", valor: L.fBRL(lucro, 2) }, { rot: "Clientes", valor: L.fInt(+t.clientes || 0) }]; },
+      aoClicar: function (r) { L.abrirPedido(r); },        // a tela lateral com os itens (pedido-lateral.js)
       vazio: "Nenhum pedido com estes filtros.",
     });
     var novo = L.h("div");
     if (n > linhas.length) novo.appendChild(L.h("div", { class: "aviso-limite", text: "Mostrando os " + L.fInt(linhas.length) + " pedidos mais recentes de " + L.fInt(n) + ". Os totais acima são do recorte inteiro; para a lista completa, diminua o período ou filtre." }));
-    novo.appendChild(L.painel({ titulo: "Pedidos", sub: p.rot + " · do mais novo para o mais velho", classe: "c-12", semPad: true, corpo: tab }));
+    novo.appendChild(L.painel({ titulo: "Pedidos", sub: p.rot + " · do mais novo para o mais velho · clique no pedido para ver os itens", classe: "c-12", semPad: true, corpo: tab }));
     corpo.replaceWith(novo);
   }).catch(function (e) {
     if (!corpo.isConnected) return;

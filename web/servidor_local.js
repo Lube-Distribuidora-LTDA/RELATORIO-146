@@ -47,11 +47,13 @@ const rotas = {
   "/api/versao": require(path.join(WEB, "api", "versao.js")),
   "/api/pacote": require(path.join(WEB, "api", "pacote.js")),
   "/api/pedidos": require(path.join(WEB, "api", "pedidos.js")),
+  "/api/pedido": require(path.join(WEB, "api", "pedido.js")),
+  "/api/img": require(path.join(WEB, "api", "img.js")),
   "/api/atualizar": require(path.join(WEB, "api", "atualizar.js")),
 };
 const TIPOS = {
   ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
-  ".png": "image/png", ".svg": "image/svg+xml", ".json": "application/json", ".woff2": "font/woff2",
+  ".png": "image/png", ".webp": "image/webp", ".svg": "image/svg+xml", ".json": "application/json", ".woff2": "font/woff2",
 };
 
 http.createServer((req, res) => {

@@ -15,9 +15,14 @@ var zoomFoto = null;
 function fecharZoomFoto() { if (zoomFoto) { zoomFoto.remove(); zoomFoto = null; } }
 L.urlFoto = function (pi) { return "api/img?cod=" + encodeURIComponent(L.P.cod[pi]); };
 L.fotoMini = function (pi) {
-  var P = L.P, box = L.h("span", { class: "foto-mini" });
-  if (pi == null || pi < 0 || !P || !P.foto[pi]) { box.classList.add("sem"); box.innerHTML = L.ic("imagem"); box.title = "Sem foto na pasta FOTOS_ION"; return box; }
-  var url = L.urlFoto(pi);
+  var P = L.P, ok = P && pi != null && pi >= 0;
+  return L.fotoProduto(ok ? P.cod[pi] : null, !!(ok && P.foto[pi]));
+};
+/* a mesma miniatura pelo código do produto (os itens do pedido não vêm de um pacote de produtos) */
+L.fotoProduto = function (cod, tem) {
+  var box = L.h("span", { class: "foto-mini" });
+  if (cod == null || !tem) { box.classList.add("sem"); box.innerHTML = L.ic("imagem"); box.title = "Sem foto na pasta FOTOS_ION"; return box; }
+  var url = "api/img?cod=" + encodeURIComponent(cod);
   var im = L.h("img", { src: url, alt: "", loading: "lazy", decoding: "async" });
   im.addEventListener("error", function () { box.classList.add("sem"); box.innerHTML = L.ic("imagem"); box.onmouseenter = null; });
   box.appendChild(im);
