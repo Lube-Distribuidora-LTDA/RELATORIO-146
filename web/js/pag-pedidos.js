@@ -236,17 +236,20 @@ function render(raiz) {
   var por = s.aba === "sup" ? NIVEL[nivel] : s.aba;
   var corpo = L.h("div", { class: "vazio", html: "<b>Lendo o resumo…</b>Do banco, com os filtros acima." });
   raiz.appendChild(corpo);
+  // clicou no RCA: a trajetória dele vem junto (pedida em paralelo com a lista de clientes)
+  var dias = s.aba === "sup" && nivel === 2 ? buscar("api/resumo?por=dia&" + consulta(p, maisDaTrilha(s))) : null;
   buscar("api/resumo?por=" + por + "&" + consulta(p, maisDaTrilha(s))).then(function (res) {
     if (!corpo.isConnected) return;
-    corpo.replaceWith(montarResumo(por, res, s));
+    corpo.replaceWith(montarResumo(por, res, s, dias));
     L.executarFila();
   }).catch(function (e) { if (corpo.isConnected) corpo.replaceWith(L.erroTela("Não foi possível ler o resumo", e.message || String(e))); });
 }
 
-function montarResumo(por, res, s) {
+function montarResumo(por, res, s, dias) {
   var raiz = L.h("div"), T = res.totais || {}, fator = res.proj_fator;
   T.venda = +T.venda || 0;
   raiz.appendChild(rodape(res));
+  if (dias) { var gt = L.grade(painelTrajetoriaRca(L.periodo(), s, dias)); gt.style.marginBottom = "16px"; raiz.appendChild(gt); }
   if (por === "fornecedor" && res.sem_itens) {
     raiz.appendChild(L.h("div", { class: "vazio", html: "<b>Por fornecedor só nos últimos 62 dias</b>A conta por fornecedor sai dos itens dos pedidos, que o painel guarda desde " + L.esc(L.fData(res.itens_desde)) + ". Escolha um período a partir dessa data." }));
     return raiz;
@@ -289,6 +292,57 @@ function graficoEvolucao(linhas) {
       dica: function (n) { var r = ord[n]; return { titulo: r._nome + ", " + L.fData(r.k), linhas: [{ rot: "Venda", val: L.fBRL(r.venda, 2) }, { rot: "Pedidos", val: L.fInt(r.pedidos) }, { rot: "% de lucro", val: L.fPct(r.plucro, 2) }], clique: "Clique para ver os pedidos do dia" }; },
       aoClicar: function (n) { var s = est(), r = ord[n]; s.dim = { aba: "dia", k: r.k, nome: L.fData(r.k) + " · " + r._nome }; s.aba = "analitico"; L.irPara("pedidos"); } });
   });
+  return el;
+}
+
+/* trajetória do RCA (pedido do Júlio, 2026-10-29: "quando eu clicar no RCA na aba de Pedidos precisa abrir o gráfico também,
+   depois que for pra pedidos pode sumir, só na área RCA"): na tela dos clientes do RCA, a venda dele por dia — por mês acima
+   de 62 dias —, do banco e com o mesmo recorte da tabela (Selecionar, Clientes, filtros), média tracejada e o clique abrindo
+   os pedidos do dia (ou do mês) daquele RCA. Nos pedidos do cliente ele some. */
+function painelTrajetoriaRca(p, s, dias) {
+  var sup = s.trilha[0], rca = s.trilha[1], porMes = p.dias > 62, hoje = L.hojeDia(), Cc = L.cores();
+  var el = L.painel({ titulo: "Trajetória de " + rca.k + " - " + L.titulo(rca.nome || ""), classe: "c-12",
+    sub: "Venda por " + (porMes ? "mês" : "dia") + " · " + p.rot + " · com os filtros acima · clique numa coluna para ver os pedidos " + (porMes ? "do mês" : "do dia") });
+  var box = L.h("div", { class: "vazio", html: "<b>Lendo a trajetória…</b>" });
+  el.corpo.appendChild(box);
+  dias.then(function (res) {
+    if (!box.isConnected) return;
+    var chaves = [], pos = new Map(), d;
+    for (d = p.de; d <= p.ate; d++) { var k = porMes ? L.mesDeDia(d) : d; if (!pos.has(k)) { pos.set(k, chaves.length); chaves.push(k); } }
+    var v = chaves.map(function () { return 0; }), q = v.slice(), l = v.slice();
+    (res.linhas || []).forEach(function (r) {
+      var dia = L.diaDeIso(r.k), c = pos.get(porMes ? L.mesDeDia(dia) : dia);
+      if (c == null) return;
+      v[c] += +r.venda || 0; q[c] += +r.pedidos || 0; l[c] += (+r.venda || 0) - (+r.cmv || 0);
+    });
+    var comVenda = v.filter(function (x) { return x > 0; }), media = comVenda.length ? comVenda.reduce(function (a, b) { return a + b; }, 0) / comVenda.length : 0;
+    if (!comVenda.length) { box.innerHTML = "<b>Sem venda</b>Nenhum pedido deste RCA no período com os filtros atuais."; return; }
+    var emAndamento = function (n) { return porMes ? chaves[n] === L.mesDeDia(hoje) : chaves[n] === hoje; };
+    var rotulo = function (n) { return porMes ? L.fMesKLongo(chaves[n]) : L.titulo(L.DIAS_SEMANA[L.dowDe(chaves[n])]) + ", " + L.fDia(chaves[n]); };
+    el.cab.appendChild(L.h("div", { class: "painel-acoes" }, L.h("span", { class: "leg-media", html: "<i></i>Média <b>" + L.esc(L.fRc(media)) + "</b>" + (porMes ? " por mês" : " por dia com venda") })));
+    var g = L.h("div");
+    box.replaceWith(g);
+    L.graf.colunas(g, {
+      categorias: chaves.map(function (k) { return porMes ? L.fMesK(k) : L.fDiaCurto(k); }),
+      series: [{ nome: "Venda", valores: v, cor: Cc.d[0] }],
+      corBarra: function (n) { return emAndamento(n) ? Cc.d[5] : Cc.d[0]; },
+      altura: 270, tipo: "moeda", fmt: L.fRc, larguraMax: 46, ref: [{ valor: media, rot: "" }],
+      dica: function (n) {
+        return { titulo: rotulo(n) + (emAndamento(n) ? " (em andamento)" : ""),
+          linhas: [{ rot: "Venda", val: L.fBRL(v[n], 2), cor: Cc.d[0] }, { rot: "Pedidos", val: L.fInt(q[n]) },
+                   { rot: "Ticket médio", val: L.fBRL(q[n] ? v[n] / q[n] : null, 2) }, { rot: "% de lucro", val: L.fPct(v[n] ? l[n] / v[n] : null, 2) },
+                   { rot: "Média do período", val: L.fBRL(media, 2) }],
+          clique: "Clique para ver os pedidos " + (porMes ? "do mês" : "do dia") };
+      },
+      aoClicar: function (n) {
+        var de = porMes ? Math.max(p.de, L.primeiroDoMes(L.diaDeIso(String(chaves[n]).slice(0, 4) + "-" + String(chaves[n]).slice(4) + "-01"))) : chaves[n];
+        var ate = porMes ? Math.min(p.ate, L.ultimoDoMes(de)) : chaves[n];
+        L.abrirPedidos({ f: { sup: [sup.k == null ? -1 : sup.k], rca: [rca.k] }, periodo: { r: "livre", de: L.isoDeDia(de), ate: L.isoDeDia(ate) } },
+                       rca.k + " - " + L.titulo(rca.nome || "") + " · " + rotulo(n));
+      },
+    });
+    L.executarFila();
+  }).catch(function (e) { if (box.isConnected) box.innerHTML = "<b>Não foi possível ler a trajetória</b>" + L.esc(e.message || String(e)); });
   return el;
 }
 
