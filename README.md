@@ -22,9 +22,13 @@ O histórico desde 01/01/2025 entrou uma vez (`conferencia/carga_historico.py`, 
 antigo). Em 60 dias medidos, nenhum pedido mudou mais de 32 dias depois da data dele.
 
 **Venda** = 0 se `CONDVENDA` 5, 6, 11 ou 12; senão `VLATEND − VLOUTRASDESP − VLFRETE − ST dos itens não bonificados`.
-**Lucro** = venda − (custo financeiro dos itens − ST de todos os itens). Filiais 1, 7, 10, 11 e 12; posições L, M, B,
-P, F e C sem data de cancelamento; `CONDVENDA` fora de 4, 8, 10, 13, 20, 98 e 99. A data é a **do pedido**
+**Lucro** = venda − (custo financeiro dos itens − ST de todos os itens). **Todas as filiais**, como a rotina 146 do
+WinThor com o campo Filial em branco (até 2026-10-29 eram só 1, 7, 10, 11 e 12, herança do Power BI); posições L, M,
+B, P, F e C sem data de cancelamento; `CONDVENDA` fora de 4, 8, 10, 13, 20, 98 e 99. A data é a **do pedido**
 (`PCPEDC.DATA`), não a da nota.
+
+A aba **Pedidos** segue a tela "Resumo de Vendas" da rotina 146 (Por supervisor → RCA → cliente → pedidos do cliente,
+e as outras abas), com as colunas conferidas contra a própria 146 (`conferencia/conferir_winthor_146.py`).
 
 ## O painel não espera o banco
 

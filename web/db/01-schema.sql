@@ -52,7 +52,7 @@ create table if not exists relatorio146.pedido (
 create index if not exists ix_pedido_data on relatorio146.pedido (data);
 alter table relatorio146.pedido enable row level security;
 comment on table relatorio146.pedido is
-  'Pedidos de venda do Relatório 146 (filiais 1, 7, 10, 11, 12; posições L, M, B, P, F, C sem cancelamento; CONDVENDA fora de 4, 8, 10, 13, 20, 98, 99), desde 01/01/2025. Gravado pelo AGENTE LUBE.';
+  'Pedidos de venda do Relatório 146 (todas as filiais, como a rotina 146 do WinThor, desde 2026-10-29; posições L, M, B, P, F, C sem cancelamento; CONDVENDA fora de 4, 8, 10, 13, 20, 98, 99), desde 01/01/2025. Gravado pelo AGENTE LUBE.';
 
 -- ----------------------------------------------------------------------------- regiões dos cartões, por CÓDIGO
 -- No Power BI eram listas de NOMES dentro de cada cartão: supervisor renomeado ou novo sumia

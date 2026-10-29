@@ -29,7 +29,7 @@ WITH ped AS (
     JOIN pcclient cl ON cl.codcli = c.codcli
     JOIN pccidade cid ON cid.codcidade = cl.codcidade
    WHERE c.data BETWEEN :de AND :ate
-     AND c.codfilial IN ('1','11','10','7','12') AND c.posicao IN ('L','M','B','P','F','C') AND c.dtcancel IS NULL
+     AND c.posicao IN ('L','M','B','P','F','C') AND c.dtcancel IS NULL   -- todas as filiais, como a 146 (desde 2026-10-29)
      AND (c.condvenda IS NULL OR c.condvenda NOT IN (4,8,10,13,20,98,99))
 ), p AS (
   SELECT ped.*,
