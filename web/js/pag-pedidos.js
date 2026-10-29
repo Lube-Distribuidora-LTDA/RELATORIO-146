@@ -36,6 +36,55 @@ L.registrarPagina({
 
 var POSICAO = { L: "Liberado", M: "Montado", B: "Bloqueado", P: "Pendente", F: "Faturado", C: "Cancelado sem data" };
 
+/* trajetória do recorte no período (pedido do Júlio, 2026-10-29: clicou no RCA, quer ver "a trajetória de todo o período
+   para saber como é o resultado dele"): venda por dia em colunas — por mês quando o período passa de 62 dias —, com os
+   mesmos filtros da tela, a média tracejada e o clique abrindo os pedidos do dia (ou do mês). Sai do pacote que o
+   navegador já tem: aparece na hora, antes da lista. */
+function painelTrajetoria(p) {
+  var porMes = p.dias > 62, R = L.R, idx = L.filtrar(L.spec()), hoje = L.hojeDia();
+  var chaves = [], pos = new Map(), d;
+  for (d = p.de; d <= p.ate; d++) {
+    var k = porMes ? L.mesDeDia(d) : d;
+    if (!pos.has(k)) { pos.set(k, chaves.length); chaves.push(k); }
+  }
+  var v = chaves.map(function () { return 0; }), q = v.slice(), l = v.slice();
+  for (var j = 0; j < idx.length; j++) {
+    var i = idx[j], c = pos.get(porMes ? L.mesDeDia(R.d[i]) : R.d[i]);
+    if (c == null) continue;
+    v[c] += R.v[i]; q[c] += R.q[i]; if (R.l[i] === R.l[i]) l[c] += R.l[i];
+  }
+  var comVenda = v.filter(function (x) { return x > 0; }), media = comVenda.length ? comVenda.reduce(function (a, b) { return a + b; }, 0) / comVenda.length : 0;
+  var C = L.cores(), emAndamento = function (n) { return porMes ? chaves[n] === L.mesDeDia(hoje) : chaves[n] === hoje; };
+  var rotulo = function (n) { return porMes ? L.fMesKLongo(chaves[n]) : L.titulo(L.DIAS_SEMANA[L.dowDe(chaves[n])]) + ", " + L.fDia(chaves[n]); };
+  var el = L.painel({ titulo: "Trajetória no período", classe: "c-12",
+    sub: "Venda por " + (porMes ? "mês" : "dia") + " · " + p.rot + " · com os filtros acima · clique numa coluna para ver os pedidos " + (porMes ? "do mês" : "do dia"),
+    acoes: comVenda.length ? L.h("span", { class: "leg-media", html: "<i></i>Média <b>" + L.esc(L.fRc(media)) + "</b>" + (porMes ? " por mês" : " por dia com venda") }) : null });
+  var box = L.h("div");
+  el.corpo.appendChild(box);
+  if (!comVenda.length) { el.corpo.appendChild(L.h("div", { class: "vazio", html: "<b>Sem venda</b>Nenhum pedido no período com os filtros atuais." })); box.remove(); return el; }
+  var cfg = {
+    categorias: chaves.map(function (k) { return porMes ? L.fMesK(k) : L.fDiaCurto(k); }),
+    series: [{ nome: "Venda", valores: v, cor: C.d[0] }],
+    corBarra: function (n) { return emAndamento(n) ? C.d[5] : C.d[0]; },
+    altura: 270, tipo: "moeda", fmt: L.fRc, larguraMax: 46,
+    ref: [{ valor: media, rot: "" }],
+    dica: function (n) {
+      return { titulo: rotulo(n) + (emAndamento(n) ? " (em andamento)" : ""),
+        linhas: [{ rot: "Venda", val: L.fBRL(v[n], 2), cor: C.d[0] }, { rot: "Pedidos", val: L.fInt(q[n]) },
+                 { rot: "Ticket médio", val: L.fBRL(q[n] ? v[n] / q[n] : null, 2) }, { rot: "% de lucro", val: L.fPct(v[n] ? l[n] / v[n] : null, 2) },
+                 { rot: "Média do período", val: L.fBRL(media, 2) }],
+        clique: "Clique para ver os pedidos " + (porMes ? "do mês" : "do dia") };
+    },
+    aoClicar: function (n) {
+      var de = porMes ? Math.max(p.de, L.primeiroDoMes(L.diaDeIso(String(chaves[n]).slice(0, 4) + "-" + String(chaves[n]).slice(4) + "-01"))) : chaves[n];
+      var ate = porMes ? Math.min(p.ate, L.ultimoDoMes(de)) : chaves[n];
+      L.abrirPedidos({ periodo: { r: "livre", de: L.isoDeDia(de), ate: L.isoDeDia(ate) } }, rotulo(n));
+    },
+  };
+  L.fila.push(function () { L.graf.colunas(box, cfg); });
+  return el;
+}
+
 function parametros(p) {
   var f = L.estado.filtros, q = ["de=" + L.isoDeDia(p.de), "ate=" + L.isoDeDia(p.ate)];
   if ((f.uf || []).length) q.push("uf=" + f.uf.map(L.ufDeId).join(","));
@@ -52,16 +101,20 @@ function render(raiz) {
   if (L.pilha.length) cab.appendChild(L.h("button", { class: "btn", type: "button", html: L.ic("devolucao") + " Voltar", onclick: L.voltar, title: "Volta para a tela e os filtros de antes" }));
   cab.appendChild(L.h("div", { class: "desc", html: (L.estado.origem ? "<b>" + L.esc(L.estado.origem) + "</b> · " : "") + L.esc(L.descricaoFiltros()) }));
   raiz.appendChild(cab);
+  var kpis = L.h("div", { class: "kpis-espera" });
+  if (p.dias <= 400) raiz.appendChild(kpis);
+  raiz.appendChild(painelTrajetoria(p));
   if (p.dias > 400) {
     raiz.appendChild(L.h("div", { class: "vazio", html: "<b>Período grande demais para listar pedido a pedido</b>Escolha até 400 dias (por exemplo, Ano atual ou 12 meses)." }));
     return;
   }
-  var kpis = L.h("div"), corpo = L.h("div", { class: "vazio", html: "<b>Lendo os pedidos…</b>Do banco, com os filtros acima." });
-  raiz.appendChild(kpis); raiz.appendChild(corpo);
+  var corpo = L.h("div", { class: "vazio", html: "<b>Lendo os pedidos…</b>Do banco, com os filtros acima." });
+  raiz.appendChild(corpo);
   var url = "api/pedidos?" + parametros(p);
   fetch(url, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : L.erroHttp(r, "os pedidos"); }).then(function (res) {
     if (!corpo.isConnected) return;
     var t = res.totais || {}, venda = +t.venda || 0, lucro = +t.lucro || 0, n = +t.pedidos || 0;
+    kpis.classList.remove("kpis-espera");
     L.limpar(kpis).appendChild(L.kpis(
       L.kpi({ icone: "dinheiro", rot: "Venda", valor: venda, fmt: L.fR, fmtTitulo: function (v) { return L.fBRL(v, 2); }, classe: "heroi" }),
       L.kpi({ icone: "prancheta", rot: "Pedidos", valor: n, fmt: L.fInt }),

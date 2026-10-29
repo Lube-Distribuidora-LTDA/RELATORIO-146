@@ -82,6 +82,11 @@
 
 /* ------------------------------ pedidos (detalhe) ------------------------------ */
 .det-cab { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 0 2px 16px; }
+.kpis-espera { min-height: 112px; }                    /* lugar dos cartões enquanto os pedidos chegam: a trajetória não pula */
+.pagina > .painel { margin-bottom: 16px; }
+.leg-media { display: inline-flex; align-items: center; gap: 8px; font: 600 12px var(--f-txt); color: var(--t2); white-space: nowrap; }
+.leg-media i { width: 22px; height: 0; border-top: 2px dashed var(--ouro); }
+.leg-media b { font: 700 12px var(--f-num); color: var(--ouro-forte); }
 .det-cab .desc { font: 500 13px var(--f-txt); color: var(--t2); flex: 1; min-width: 240px; }
 .det-cab .desc b { color: var(--t1); }
 .aviso-limite { margin: 0 2px 12px; padding: 10px 14px; border-radius: 12px; background: var(--atencao-bg); color: var(--atencao); font: 600 12.5px var(--f-txt); }

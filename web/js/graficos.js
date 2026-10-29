@@ -162,7 +162,8 @@ G.colunas = function (box, cfg, animar) {
   (cfg.ref || []).forEach(function (r) {
     var y = Y(r.valor), t = r.rot, w = L.medir(t, 11, 800) + 14;
     out.push('<line class="ref-l" x1="' + axW + '" x2="' + (W - padR) + '" y1="' + f1(y) + '" y2="' + f1(y) + '"/>');
-    out.push('<rect class="ref-p" x="' + (axW + 6) + '" y="' + f1(y - 10) + '" width="' + f1(w) + '" height="20" rx="6"/><text class="ref-t" x="' + (axW + 13) + '" y="' + f1(y + 4) + '">' + L.esc(t) + "</text>");
+    // sem rótulo, só a linha (o rótulo vai na legenda do painel e não cobre o rótulo da primeira coluna)
+    if (t) out.push('<rect class="ref-p" x="' + (axW + 6) + '" y="' + f1(y - 10) + '" width="' + f1(w) + '" height="20" rx="6"/><text class="ref-t" x="' + (axW + 13) + '" y="' + f1(y + 4) + '">' + L.esc(t) + "</text>");
   });
   out.push(textoSVG.join(""));
   out.push("</svg>");
