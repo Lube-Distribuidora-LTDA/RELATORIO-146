@@ -34,7 +34,9 @@ TOML = r"C:\Users\gti.julio.alves\Desktop\BI\22. AGENTE LUBE\2 - AGENTE\fluxos\r
 load_dotenv(ENV)
 oracledb.defaults.fetch_decimals = True
 
-TEXTO = {"codfilial", "uf", "supervisor", "rca", "posicao"}
+TEXTO = {"codfilial", "uf", "supervisor", "rca", "posicao", "codcob", "origemped", "tipofj", "classevenda", "areaatuacao"}
+DATAS = {"data", "dtfat"}
+NUMERICAS = {"venda", "custo_liq", "qtitens", "vltabela", "bonific", "custo_real", "peso", "prazo"}
 
 
 def fluxo():
@@ -50,9 +52,9 @@ def limpar(v, col):
     if col in TEXTO:
         v = str(v).strip()
         return v or None
-    if col == "data":
+    if col in DATAS:
         return v.date() if hasattr(v, "date") else v
-    if isinstance(v, Decimal) and v == v.to_integral_value() and col not in ("venda", "custo_liq", "qtitens"):
+    if isinstance(v, Decimal) and v == v.to_integral_value() and col not in NUMERICAS:
         return int(v)
     return v
 

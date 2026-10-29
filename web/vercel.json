@@ -6,6 +6,7 @@
     "api/pacote.js": { "maxDuration": 60 },
     "api/pedidos.js": { "maxDuration": 60 },
     "api/pedido.js": { "maxDuration": 30 },
+    "api/resumo.js": { "maxDuration": 60 },
     "api/img.js": { "maxDuration": 15 },
     "api/atualizar.js": { "maxDuration": 30 }
   },

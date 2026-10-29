@@ -35,7 +35,9 @@ function contas(d) {
     var corte = orig != null && orig > qt ? orig - qt : 0;
     return Object.assign({}, it, {
       qtn: qt, qtorign: orig, preco: pv - st, precoPed: pv, stn: st, tabn: tab, bonif: bonif,
-      desconto: tab > 0 ? 1 - pv / tab : null, valorPed: qt * pv, venda: venda, custo: custo, lucro: venda - custo,
+      // %Desc como a 146: preço contra a tabela, os dois sem ST (negativo = abaixo da tabela)
+      desconto: tab - st > 0 ? (pv - st) / (tab - st) - 1 : null, tabelaSemSt: qt * ((tab || 0) - st),
+      valorPed: qt * pv, venda: venda, custo: custo, lucro: venda - custo,
       corte: corte, vCorte: corte * (pv - st),
     });
   });
@@ -94,6 +96,8 @@ function cabecalho(p) {
     chip("pessoas", "RCA " + L.titulo(p.rca || "") + " (" + p.codusur + ")"),
     p.supervisor ? chip("estrela", "Sup. " + L.titulo(p.supervisor)) : null,
     chip("armazem", "Filial " + p.codfilial),
+    p.numcar ? chip("caminhao", "Carregamento " + p.numcar) : null,
+    p.codplpag != null && p.plano ? chip("calendario", "Plano " + p.codplpag + " - " + L.titulo(p.plano)) : null,
     L.h("span", { html: '<span class="pos ' + L.esc(p.posicao) + '">' + L.esc(POSICAO[p.posicao] || p.posicao || "") + "</span>" })];
   if (COND_ZERO.indexOf(+p.condvenda) >= 0) subs.push(chip("info", "Condição de venda " + p.condvenda + ": conta venda zero no 146"));
   var acoes = L.h("div", { class: "dos-acoes" });
@@ -120,8 +124,10 @@ function imprimir() {
 
 /* ------------------------------ cartões ------------------------------ */
 function indicadores(p, itens) {
-  var venda = n(p.venda), lucro = n(p.lucro), un = 0, corte = 0, nCorte = 0, ped = 0, tab = 0;
-  itens.forEach(function (x) { un += x.qtn; corte += x.vCorte; if (x.corte) nCorte++; if (x.tabn > 0) { ped += x.valorPed; tab += x.qtn * x.tabn; } });
+  var venda = n(p.venda), lucro = n(p.lucro), un = 0, corte = 0, nCorte = 0;
+  itens.forEach(function (x) { un += x.qtn; corte += x.vCorte; if (x.corte) nCorte++; });
+  // tabela do pedido como a 146 (VLTABELA − despesas − frete − ST); sem ela, a dos itens
+  var tab = p.tabela != null ? n(p.tabela) : itens.reduce(function (a, x) { return a + (x.bonif ? 0 : x.tabelaSemSt); }, 0);
   var soma = itens.reduce(function (a, x) { return a + x.venda; }, 0);
   var legVenda = !itens.length ? "sem ST, frete e outras despesas" : Math.abs(soma - (venda || 0)) > 0.05 ? "itens somam " + L.fBRL(soma, 2)
     : itens.length === 1 ? "o item do pedido, sem ST" : "soma dos " + L.fInt(itens.length) + " itens, sem ST";
@@ -130,8 +136,9 @@ function indicadores(p, itens) {
     L.kpi({ icone: "percent", rot: "Lucro", valor: lucro, fmt: function (v) { return L.fBRL(v, 2); }, classe: lucro != null && lucro < 0 ? "perigo" : "",
       leg: L.h("span", { text: venda ? L.fPct(lucro / venda, 2) + " de lucro" : "pedido sem venda" }) }),
     L.kpi({ icone: "caixa", rot: "Itens", valor: itens.length || n(p.qtitens), fmt: L.fInt, leg: L.h("span", { text: itens.length ? L.fNum(un, un % 1 ? 2 : 0) + " unidades" : "contados pelo 146" }) }),
-    L.kpi({ icone: "etiqueta", rot: "Desconto s/ tabela", valor: tab ? 1 - ped / tab : null, fmt: function (v) { return L.fPct(v, 2); },
-      ajuda: "Preço praticado contra o preço de tabela do WinThor, nos itens com preço de tabela.", leg: L.h("span", { text: tab ? "tabela " + L.fBRL(tab, 2) : "sem preço de tabela" }) }),
+    L.kpi({ icone: "etiqueta", rot: "%Desc. (146)", valor: tab && venda ? venda / tab - 1 : null, fmt: function (v) { return L.fPct(v, 2); },
+      ajuda: "Venda contra o valor de tabela, os dois sem ST, como a coluna %Desc. da rotina 146 (negativo = abaixo da tabela).",
+      leg: L.h("span", { text: tab ? "tabela " + L.fBRL(tab, 2) : "sem preço de tabela" }) }),
     L.kpi({ icone: "alerta", rot: "Corte no atendimento", valor: corte, fmt: function (v) { return L.fBRL(v, 2); }, classe: corte ? "perigo" : "zero",
       ajuda: "Quantidade pedida que não foi atendida (QTORIG − QT), ao preço do item.", leg: L.h("span", { text: nCorte ? L.fInt(nCorte) + (nCorte > 1 ? " itens cortados" : " item cortado") : "nada cortado" }) }));
 }
@@ -162,7 +169,7 @@ function abaItens(p, itens) {
       { id: "preco", titulo: "Preço un.", tipo: "moeda", somar: false, valor: function (x) { return x.preco; }, dica: "Preço de venda por unidade, sem ST (PVENDA − ST)." },
       { id: "tab", titulo: "Preço tabela", tipo: "moeda", somar: false, essencial: false, valor: function (x) { return x.tabn; } },
       { id: "desc", titulo: "Desconto", tipo: "pct", somar: false, essencial: false, valor: function (x) { return x.desconto; }, fmt: function (v) { return v == null ? "" : L.fPct(v, 2); },
-        dica: "Preço praticado contra o preço de tabela (com ST nos dois)." },
+        dica: "Preço contra o preço de tabela, os dois sem ST, como a 146 (negativo = abaixo da tabela)." },
       { id: "st", titulo: "ST un.", tipo: "moeda", somar: false, essencial: false, valor: function (x) { return x.stn; } },
       { id: "vped", titulo: "Valor no pedido", tipo: "moeda", essencial: false, valor: function (x) { return x.valorPed; }, dica: "QT × PVENDA, com ST, como no pedido do WinThor." },
       { id: "venda", titulo: "Venda", tipo: "moeda", barra: true, valor: function (x) { return x.venda; }, dica: "Venda do item no Relatório 146: QT × (PVENDA − ST)." },

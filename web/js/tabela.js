@@ -141,10 +141,11 @@ L.tabela = function (cfg) {
     vis.forEach(function (c) { if (c.barra) maxCol[c.id] = Math.max.apply(null, res.linhas.map(function (r) { var v = c.valor(r); return v > 0 ? v : 0; }).concat([1e-9])); });
 
     var tab = L.h("table", { class: "tabela" }), tr = L.h("tr");
-    var nFix = cfg.rank ? 2 : 1;
+    var fix2 = !cfg.rank && cfg.fixas === 2;           // código e nome parados ao rolar, como no WinThor
+    var classeFixa = function (i) { return i === 0 && cfg.rank ? " f2" : i === 0 ? " f1" : fix2 && i === 1 ? " f2" : ""; };
     if (cfg.rank) tr.appendChild(L.h("th", { class: "f1 rk", text: "#" }));
     vis.forEach(function (c, i) {
-      var th = L.h("th", { class: (c.alinhar === "esq" || c.tipo === "texto" || c.tipo === "tag" ? "" : "d") + ((c.ord !== false) ? " ord" : "") + (i === 0 && cfg.rank ? " f2" : i === 0 ? " f1" : ""), title: c.dica || "" });
+      var th = L.h("th", { class: (c.alinhar === "esq" || c.tipo === "texto" || c.tipo === "tag" ? "" : "d") + ((c.ord !== false) ? " ord" : "") + classeFixa(i), title: c.dica || "" });
       th.appendChild(document.createTextNode(c.titulo));
       if (est.ord && est.ord.id === c.id) th.appendChild(L.h("span", { class: "seta", text: est.ord.desc ? "▼" : "▲" }));
       if (c.ord !== false) th.addEventListener("click", function () {
@@ -160,7 +161,7 @@ L.tabela = function (cfg) {
       var linha = L.h("tr", { class: (cfg.aoClicar ? "click " : "") + (cfg.rank && rk <= 3 && !est.busca ? "top" + rk : "") });
       if (cfg.rank) linha.appendChild(L.h("td", { class: "f1 rk", text: String(rk) }));
       vis.forEach(function (c, i) {
-        var v = c.valor(r, idx), td = L.h("td", { class: (c.alinhar === "esq" || c.tipo === "texto" || c.tipo === "tag" ? "" : "d") + (i === 0 && cfg.rank ? " f2" : i === 0 ? " f1" : "") + (c.classe ? " " + (typeof c.classe === "function" ? c.classe(v, r) : c.classe) : "") });
+        var v = c.valor(r, idx), td = L.h("td", { class: (c.alinhar === "esq" || c.tipo === "texto" || c.tipo === "tag" ? "" : "d") + classeFixa(i) + (c.classe ? " " + (typeof c.classe === "function" ? c.classe(v, r) : c.classe) : "") });
         var txt = c.fmt ? c.fmt(v, r) : (FMT[c.tipo || "texto"] || FMT.texto)(v);
         var inner;
         if (txt && typeof txt === "object" && txt.html != null) { inner = L.h("span", { html: txt.html }); }
@@ -190,7 +191,7 @@ L.tabela = function (cfg) {
     var wrap = L.h("div", { class: "tb-wrap" + (cfg.livre ? " livre" : ""), style: cfg.alturaMax ? { maxHeight: cfg.alturaMax + "px" } : {} }, tab);
     corpo.appendChild(wrap);
     // fixar a segunda coluna logo após a primeira
-    if (cfg.rank) {
+    if (cfg.rank || fix2) {
       requestAnimationFrame(function () {
         var th1 = tab.querySelector("th.f1"); if (!th1) return;
         var w = th1.getBoundingClientRect().width;

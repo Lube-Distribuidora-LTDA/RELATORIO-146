@@ -148,3 +148,30 @@
   .dos-acoes { margin-left: 0; width: 100%; justify-content: flex-start; }
   .dos-corpo { padding: 16px 14px 32px; }
 }
+
+/* a aba Pedidos no jeito da 146 do WinThor (pag-pedidos.js, 2026-10-29) */
+.r146-cab { display: flex; flex-direction: column; gap: 10px; margin: 0 2px 14px; }
+.r146-abas { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px solid var(--linha); scrollbar-width: thin; }
+.r146-abas button { flex: none; border: 0; background: transparent; color: var(--t3); padding: 9px 13px; font: 700 12.5px var(--f-txt); position: relative; white-space: nowrap; border-radius: 8px 8px 0 0; }
+.r146-abas button:hover { color: var(--t1); background: var(--s2); }
+.r146-abas button.on { color: var(--ouro-forte); }
+.r146-abas button.on::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--ouro); box-shadow: 0 0 12px var(--ouro); }
+.r146-ops { display: flex; flex-wrap: wrap; gap: 10px 18px; }
+.r146-op { display: inline-flex; align-items: center; gap: 8px; font: 600 12px var(--f-txt); color: var(--t3); }
+.r146-trilha { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 0 2px 14px; }
+.r146-trilha .caminho { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font: 700 14px var(--f-txt); color: var(--t2); }
+.r146-trilha .caminho > b { color: var(--ouro-forte); font-size: 15px; }
+.r146-trilha .caminho .sep { color: var(--t3); }
+.r146-trilha .caminho button { border: 0; background: var(--s2); color: var(--t2); padding: 4px 10px; border-radius: 99px; font: 600 12.5px var(--f-txt); }
+.r146-trilha .caminho button:hover { color: var(--ouro-forte); }
+.r146-trilha .caminho .atual { color: var(--t1); }
+.r146-trilha .desc { font: 500 12.5px var(--f-txt); color: var(--t3); flex-basis: 100%; }
+.r146-trilha .desc b { color: var(--t1); }
+.r146-rodape { display: grid; grid-template-columns: 1fr 1.6fr 3fr 1.1fr; gap: 12px; margin-bottom: 16px; }
+.r146-rodape .g { background: var(--s1); border: 1px solid var(--linha); border-radius: 14px; padding: 10px 14px 12px; display: flex; flex-wrap: wrap; gap: 8px 18px; align-content: flex-start; }
+.r146-rodape h4 { flex-basis: 100%; font: 700 10.5px var(--f-txt); letter-spacing: .14em; text-transform: uppercase; color: var(--ouro); margin: 0; }
+.r146-rodape .c { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.r146-rodape .c small { font: 500 11px var(--f-txt); color: var(--t3); white-space: nowrap; }
+.r146-rodape .c b { font: 600 14.5px var(--f-num); color: var(--t1); white-space: nowrap; }
+@media (max-width: 1280px) { .r146-rodape { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 760px) { .r146-rodape { grid-template-columns: 1fr; } .r146-op { flex-wrap: wrap; } }

@@ -48,6 +48,7 @@ const rotas = {
   "/api/pacote": require(path.join(WEB, "api", "pacote.js")),
   "/api/pedidos": require(path.join(WEB, "api", "pedidos.js")),
   "/api/pedido": require(path.join(WEB, "api", "pedido.js")),
+  "/api/resumo": require(path.join(WEB, "api", "resumo.js")),
   "/api/img": require(path.join(WEB, "api", "img.js")),
   "/api/atualizar": require(path.join(WEB, "api", "atualizar.js")),
 };

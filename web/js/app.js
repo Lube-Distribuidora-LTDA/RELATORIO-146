@@ -30,7 +30,7 @@ function construirMenu() {
     L.ordemPaginas.filter(function (id) { return L.paginas[id].grupo === g; }).forEach(function (id) {
       var p = L.paginas[id];
       nav.appendChild(L.h("button", { class: "item-menu", type: "button", "data-p": id, html: L.ic(p.icone) + "<span>" + L.esc(p.menu || p.titulo) + "</span>",
-        onclick: function () { L.pilha = []; L.estado.origem = null; L.irPara(id); document.body.classList.remove("menu-aberto"); } }));
+        onclick: function () { L.pilha = []; L.estado.origem = null; L.estado.r146 = null; L.irPara(id); document.body.classList.remove("menu-aberto"); } }));
     });
   });
   rodape();

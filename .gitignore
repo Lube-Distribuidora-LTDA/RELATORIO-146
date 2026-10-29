@@ -5,3 +5,4 @@ ENV
 __pycache__/
 .vercel/
 conferencia/referencias-power-bi.json
+conferencia/referencias-winthor-146.json
