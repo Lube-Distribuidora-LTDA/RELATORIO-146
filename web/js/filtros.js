@@ -30,6 +30,22 @@ L.setSuspeitos = function (on) { L.estado.suspeitos = !!on; mudou(); };
 /* ------------------------------ popover de opções ------------------------------ */
 function fechar() { if (aberto) { aberto.el.remove(); document.removeEventListener("mousedown", aberto.fora, true); document.removeEventListener("keydown", aberto.tecla, true); aberto = null; } }
 L.fecharPopover = fechar;
+
+/* o menu fica preso ao botão de onde abriu: a pessoa rolou a página, ele fecha (pedido do Júlio, 2026-10-30 — o menu é
+   fixo na tela e, quando a faixa de filtros subia com a página, ele ficava parado e "ia junto"). Vale para todo menu
+   (.pop): filtro, Colunas da tabela e a busca. Fecha com o gesto de rolar (roda, arrastar no celular, teclas de rolagem),
+   não com o evento de rolagem: marcar uma opção redesenha a tela e a rolagem anda sozinha, e aí o menu tem que ficar.
+   Rolar a lista de dentro do menu não fecha (e no fim dela a roda não passa para a página: overscroll-behavior). */
+function fecharMenus(ev) {
+  var pops = document.querySelectorAll(".pop");
+  if (!pops.length || [].some.call(pops, function (p) { return p.contains(ev.target); })) return;
+  pops.forEach(function (p) { if (aberto && aberto.el === p) fechar(); else p.remove(); });
+}
+window.addEventListener("wheel", fecharMenus, { capture: true, passive: true });
+window.addEventListener("touchmove", fecharMenus, { capture: true, passive: true });
+window.addEventListener("keydown", function (ev) {
+  if (/^(PageDown|PageUp|Home|End|ArrowDown|ArrowUp| )$/.test(ev.key) && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) fecharMenus(ev);
+}, true);
 function posicionar(el, ancora, w) {
   document.body.appendChild(el);
   var r = ancora.getBoundingClientRect();

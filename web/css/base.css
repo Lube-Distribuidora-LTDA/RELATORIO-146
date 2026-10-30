@@ -170,7 +170,7 @@ svg { display: block; }
   flex: 1; height: 36px; border-radius: 10px; border: 1px solid var(--linha); background: var(--s1); color: var(--t1); padding: 0 12px; font: 500 13px var(--f-txt); outline: 0;
 }
 .pop-topo input:focus { border-color: var(--ouro-linha); }
-.pop-lista { overflow: auto; padding: 6px; flex: 1; }
+.pop-lista { overflow: auto; padding: 6px; flex: 1; overscroll-behavior: contain; }   /* no fim da lista a roda não rola a página (que fecharia o menu) */
 .pop-item {
   display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: transparent; text-align: left; padding: 8px 10px; border-radius: 9px; color: var(--t2); font: 500 13px var(--f-txt);
 }
