@@ -144,6 +144,7 @@ create trigger tg_pedido_del after delete on relatorio146.pedido
 --   q = pedidos · v = venda · l = lucro (nulo quando nenhum pedido da linha tem item, igual ao VLLUCRO original)
 -- UF, supervisor e RCA com o cadastro ATUAL (core.dim_*), como o Power BI faz a cada atualização;
 -- sem cadastro, o que o pedido trouxe na leitura. Valores cheios: arredondar só na tela.
+-- (Redefinida em 05-filial.sql, 2026-11-10: + a lista 'fil' de filiais com a UF.)
 create or replace function relatorio146.montar_pacote(p_desde date, p_ate date)
 returns json
 language sql

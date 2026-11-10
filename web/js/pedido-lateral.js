@@ -95,7 +95,7 @@ function cabecalho(p) {
     p.cidade ? chip("pino", L.titulo(p.cidade) + (p.uf ? " · " + p.uf : "")) : null,
     chip("pessoas", "RCA " + L.titulo(p.rca || "") + " (" + p.codusur + ")"),
     p.supervisor ? chip("estrela", "Sup. " + L.titulo(p.supervisor)) : null,
-    chip("armazem", "Filial " + p.codfilial),
+    chip("armazem", L.nomeFilial(p.codfilial), L.ondeFilial(p.codfilial)),
     p.numcar ? chip("caminhao", "Carregamento " + p.numcar) : null,
     p.codplpag != null && p.plano ? chip("calendario", "Plano " + p.codplpag + " - " + L.titulo(p.plano)) : null,
     L.h("span", { html: '<span class="pos ' + L.esc(p.posicao) + '">' + L.esc(POSICAO[p.posicao] || p.posicao || "") + "</span>" })];

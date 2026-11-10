@@ -162,7 +162,7 @@ function montar() {
   camadas.forEach(function (j) { n += j.r.n; });
   var R = { n: 0, d: new Int16Array(n), u: new Uint16Array(n), s: new Int32Array(n), c: new Int32Array(n), f: new Int16Array(n),
             q: new Int32Array(n), v: new Float64Array(n), l: new Float64Array(n) };
-  var sup = new Map(), rca = new Map(), grupos = new Map(), ufs = new Map(), k = 0;
+  var sup = new Map(), rca = new Map(), grupos = new Map(), fil = new Map(), ufs = new Map(), k = 0;
   camadas.forEach(function (j, ci) {
     var de = L.diaDeIso(j.meta.desde), prox = camadas[ci + 1], ate = j.meta.ate ? L.diaDeIso(j.meta.ate) : Infinity;
     if (prox) ate = Math.min(ate, L.diaDeIso(prox.meta.desde) - 1);      // a camada mais nova vale por cima
@@ -180,9 +180,10 @@ function montar() {
     (j.sup || []).forEach(function (x) { sup.set(x[0], x[1]); });
     (j.rca || []).forEach(function (x) { rca.set(x[0], x[1]); });
     (j.grupos || []).forEach(function (x) { grupos.set(x[0], x[1]); });
+    (j.fil || []).forEach(function (x) { fil.set(+x[0], { uf: x[1] || "", cidade: x[2] || "", fantasia: x[3] || "" }); });
   });
   R.n = k;
-  L.R = R; L.SUP = sup; L.RCA = rca; L.GRUPOS = grupos;
+  L.R = R; L.SUP = sup; L.RCA = rca; L.GRUPOS = grupos; L.FIL = fil;
   L.UFS = Array.from(ufs.values()).sort(function (a, b) { return b.v - a.v; });
   var hoje = L.PAC.hoje && L.PAC.hoje.j, base = L.PAC.base && L.PAC.base.j;
   L.META = {
@@ -209,6 +210,14 @@ function titulo(s) {
 L.titulo = titulo;
 L.nomeSup = function (cod) { return cod < 0 ? "* NAO VINCULADO *" : (L.SUP.get(cod) || "Supervisor " + cod); };
 L.nomeRca = function (cod) { return L.RCA.get(cod) || "RCA " + cod; };
+/* Filial com a UF do cadastro (PCFILIAL), como a 146 do WinThor chama: o "ES" de lá é a filial 1,
+   não a Região (equipes) do painel. Sem cadastro no pacote, só o número. */
+L.filialCurta = function (cod) { var f = L.FIL && L.FIL.get(+cod); return String(cod) + (f && f.uf ? " · " + f.uf : ""); };
+L.nomeFilial = function (cod) { return "Filial " + L.filialCurta(cod); };
+L.ondeFilial = function (cod) {
+  var f = L.FIL && L.FIL.get(+cod); if (!f) return "";
+  return [f.fantasia ? titulo(f.fantasia) : "", f.cidade ? titulo(f.cidade) : ""].filter(Boolean).join(", ");
+};
 L.grupoDeSup = function (cod) { var g = L.GRUPOS.get(cod); return g === "ES" || g === "BA" || g === "RJ" || g === "INTERNA" ? g : "FORA"; };
 L.NOMES_UF = { ES: "Espírito Santo", RJ: "Rio de Janeiro", BA: "Bahia", MG: "Minas Gerais", SP: "São Paulo", PR: "Paraná", SC: "Santa Catarina",
                RS: "Rio Grande do Sul", GO: "Goiás", DF: "Distrito Federal", PE: "Pernambuco", SE: "Sergipe", AL: "Alagoas" };
@@ -225,8 +234,8 @@ function definirDimensoes() {
     sup: { rot: "Supervisor", nome: function (id) { return L.nomeSup(id); },
            todos: function () { return Array.from(visto.s).sort(function (a, b) { return L.nomeSup(a).localeCompare(L.nomeSup(b), "pt-BR"); })
              .map(function (s) { return { id: s, t: L.nomeSup(s), s: s >= 0 ? "cód. " + s : "" }; }); } },
-    fil: { rot: "Filial", nome: function (id) { return "Filial " + id; },
-           todos: function () { return Array.from(visto.f).sort(function (a, b) { return a - b; }).map(function (f) { return { id: f, t: "Filial " + f }; }); } },
+    fil: { rot: "Filial", nome: function (id) { return L.nomeFilial(id); },
+           todos: function () { return Array.from(visto.f).sort(function (a, b) { return a - b; }).map(function (f) { return { id: f, t: L.nomeFilial(f), s: L.ondeFilial(f) }; }); } },
     rca: { rot: "RCA", nome: function (id) { return titulo(L.nomeRca(id)); },
            todos: function () { return Array.from(visto.c).sort(function (a, b) { return L.nomeRca(a).localeCompare(L.nomeRca(b), "pt-BR"); })
              .map(function (c) { return { id: c, t: titulo(L.nomeRca(c)), s: "cód. " + c }; }); } },
@@ -358,7 +367,7 @@ L.descricaoFiltros = function (extra, semPeriodo) {
   var f = Object.assign({}, L.estado.filtros, extra || {});
   Object.keys(f).forEach(function (k) {
     if (!L.DIM[k] || !f[k] || !f[k].length) return;
-    partes.push(L.DIM[k].rot + ": " + f[k].map(function (id) { return L.nomeDe(k, id); }).join("; "));
+    partes.push(L.DIM[k].rot + ": " + f[k].map(function (id) { return k === "fil" ? L.filialCurta(id) : L.nomeDe(k, id); }).join("; "));
   });
   return partes.join(" · ") || "Sem filtros";
 };

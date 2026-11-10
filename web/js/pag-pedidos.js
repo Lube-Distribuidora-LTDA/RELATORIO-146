@@ -385,7 +385,7 @@ function colunasPedido(doCliente) {
     { id: "uf", titulo: "UF", tipo: "texto", valor: function (r) { return r.uf || ""; } },
     { id: "rca", titulo: "RCA", tipo: "texto", valor: function (r) { return L.titulo(r.rca); } },
     { id: "sup", titulo: "Supervisor", tipo: "texto", essencial: false, valor: function (r) { return r.supervisor ? L.titulo(r.supervisor) : ""; } },
-    { id: "fil", titulo: "Filial", tipo: "texto", essencial: false, valor: function (r) { return r.codfilial; } });
+    { id: "fil", titulo: "Filial", tipo: "texto", essencial: false, valor: function (r) { return L.filialCurta(r.codfilial); }, titleTd: function (r) { return L.ondeFilial(r.codfilial); } });
   cols.push(
     { id: "numcar", titulo: "Nº Carregamento", tipo: "texto", essencial: doCliente, valor: function (r) { return r.numcar == null || +r.numcar === 0 ? "" : String(r.numcar); } },
     { id: "nitens", titulo: "Nº Itens", tipo: "inteiro", valor: function (r) { return r.numitens == null ? null : +r.numitens; } },
