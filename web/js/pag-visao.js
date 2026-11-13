@@ -10,6 +10,13 @@
  *   · ticket e % de lucro com "—" quando não há pedido (o original mostrava NaN/Infinito).
  * Os cartões regionais seguem POR EQUIPE (supervisor), e a participação POR UF DO CLIENTE: são
  * duas regras diferentes, e cada uma diz na tela o que conta.
+ *
+ * A OPERAÇÃO INTERNA (supervisor LUBE DISTRIBUIDORA: transferência entre filiais, firma, reposição,
+ * transportadora) aparece no cartão dela, mas NÃO SOMA NA VENDA (Júlio, 2026-11-13: "pode aparecer ali,
+ * mas não pode participar do número da soma da venda"): total, ticket, pedidos, positivação, hoje,
+ * semana, UF, venda por dia e RCAs são sem ela, e o clique abre os pedidos sem ela. Só com a Região
+ * "Operação interna" marcada sozinha ela vira a conta da tela (senão tudo daria zero).
+ * A aba Pedidos segue a 146 do WinThor (com a operação interna), como sempre.
  * ========================================================================== */
 (function () {
 "use strict";
@@ -20,6 +27,28 @@ L.fRc = function (v) { return L.fAbrev(v, true); };
 var CLASSE_REG = { ES: "reg-es", BA: "reg-ba", RJ: "reg-rj", INTERNA: "reg-in" };
 var ICONE_REG = { ES: "pino", BA: "pino", RJ: "pino", INTERNA: "armazem" };
 
+/* ------------------------------ a venda sem a operação interna ------------------------------ */
+var ID_INTERNA = L.regiaoDeK("INTERNA").id;
+function soInterna() { var r = L.estado.filtros.regiao || []; return r.length > 0 && r.every(function (id) { return id === ID_INTERNA; }); }
+/* as regiões que entram na venda: as marcadas (ou todas), menos a operação interna */
+function regioesDaVenda() {
+  var r = L.estado.filtros.regiao || [];
+  if (soInterna()) return r.slice();
+  return (r.length ? r : L.REGIOES.map(function (x) { return x.id; })).filter(function (id) { return id !== ID_INTERNA; });
+}
+function specVenda(extra) {
+  extra = Object.assign({}, extra || {});
+  extra.f = Object.assign({ regiao: regioesDaVenda() }, extra.f || {});
+  return L.spec(extra);
+}
+/* o clique abre os pedidos do mesmo número: sem a operação interna (a Região vem marcada na aba Pedidos) */
+function abrir(mud, rot) {
+  mud = Object.assign({}, mud || {});
+  mud.f = Object.assign({ regiao: regioesDaVenda() }, mud.f || {});
+  L.abrirPedidos(mud, rot);
+}
+function naVenda(i) { return L.regiaoDaLinha(i) !== "INTERNA"; }
+
 L.registrarPagina({
   id: "visao", grupo: "Relatório 146", titulo: "Visão geral", menu: "Visão geral", icone: "home",
   olho: "Faturamento 146 · venda por pedido",
@@ -27,9 +56,9 @@ L.registrarPagina({
   render: render,
 });
 
-/* venda, pedidos e lucro do recorte, no total e por região dos cartões */
+/* venda, pedidos e lucro do recorte: o total sem a operação interna; por região, todas (o cartão da interna mostra a dela) */
 function valores(idx) {
-  var out = { tot: L.somar(idx), reg: {} };
+  var out = { tot: L.somar(idx, soInterna() ? null : naVenda), reg: {} };
   L.REGIOES.forEach(function (r) { out.reg[r.k] = L.somar(idx, function (i) { return L.regiaoDaLinha(i) === r.k; }); });
   return out;
 }
@@ -43,7 +72,7 @@ function render(raiz) {
   var meses = L.mesesDoPeriodo(p).map(function (m) { return L.MESES[m % 100 - 1]; });
 
   raiz.appendChild(L.h("div", { class: "linha-kpi-tit" }, L.h("h2", { text: "Vendas" }),
-    L.h("span", { text: p.rot + (meses.length > 1 && meses.length <= 4 ? " · " + meses.join(" / ") : "") })));
+    L.h("span", { text: p.rot + (meses.length > 1 && meses.length <= 4 ? " · " + meses.join(" / ") : "") + (soInterna() ? "" : " · sem a operação interna") })));
 
   /* linha 1: venda no total e por região (equipes do supervisor) */
   function cmpDe(get) { return { pa: pa ? get(pa) : null, aa: aa ? get(aa) : null, cmp: cmp }; }
@@ -52,14 +81,15 @@ function render(raiz) {
   var k1 = [L.kpi({ icone: "dinheiro", rot: "Total de vendas", valor: t.v, fmt: L.fR, fmtTitulo: function (v) { return L.fBRL(v, 2); }, classe: "heroi",
                     cmp: cmpDe(function (x) { return x.tot.v; }),
                     leg: sub("Lucro", L.fPct(t.pctLucro, 1)),
-                    ajuda: "Venda dos pedidos do período (data do pedido): valor atendido menos outras despesas, frete e ST. Bonificação e troca contam como pedido com venda zero.",
-                    aoClicar: function () { L.abrirPedidos({}, "Total de vendas"); } })];
+                    ajuda: "Venda dos pedidos do período (data do pedido): valor atendido menos outras despesas, frete e ST. Bonificação e troca contam como pedido com venda zero." +
+                           (soInterna() ? "" : " Sem a operação interna, que aparece só no cartão dela."),
+                    aoClicar: function () { abrir({}, "Total de vendas"); } })];
   ["ES", "BA", "RJ", "INTERNA"].forEach(function (k) {
-    var r = L.regiaoDeK(k), v = atual.reg[k];
+    var r = L.regiaoDeK(k), v = atual.reg[k], fora = k === "INTERNA" && !soInterna();
     k1.push(L.kpi({ icone: ICONE_REG[k], rot: r.longo, valor: v.v, fmt: L.fR, fmtTitulo: function (x) { return L.fBRL(x, 2); }, classe: CLASSE_REG[k] + (v.v ? "" : " zero"),
       cmp: cmpDe(function (x) { return x.reg[k].v; }),
-      leg: sub("do total", L.fPct(t.v ? v.v / t.v : null, 1)),
-      ajuda: k === "INTERNA" ? "Venda do supervisor LUBE DISTRIBUIDORA (código 3)." : "Venda das equipes (supervisores) " + k + " — pelo supervisor do pedido, não pela UF do cliente.",
+      leg: fora ? L.h("span", { class: "sub", text: "Fora do total de vendas" }) : sub("do total", L.fPct(t.v ? v.v / t.v : null, 1)),
+      ajuda: k === "INTERNA" ? "Supervisor LUBE DISTRIBUIDORA (código 3): transferência entre filiais, firma, reposição e transportadora. Aparece aqui, mas não soma no Total de vendas." : "Venda das equipes (supervisores) " + k + " — pelo supervisor do pedido, não pela UF do cliente.",
       aoClicar: function () { L.abrirPedidos({ f: { regiao: [r.id] } }, r.longo); } }));
   });
   raiz.appendChild(L.kpis.apply(null, k1));
@@ -68,8 +98,8 @@ function render(raiz) {
   var k2 = [L.kpi({ icone: "etiqueta", rot: "Ticket médio", valor: t.ticket, fmt: function (v) { return L.fBRL(v, 2); }, classe: t.q ? "" : "zero",
                     cmp: cmpDe(function (x) { return x.tot.ticket; }),
                     leg: sub("Pedidos", L.fInt(t.q)),
-                    ajuda: "Venda ÷ quantidade de pedidos (bonificação e troca entram na conta dos pedidos, como no relatório original).",
-                    aoClicar: function () { L.abrirPedidos({}, "Ticket médio"); } })];
+                    ajuda: "Venda ÷ quantidade de pedidos (bonificação e troca entram na conta dos pedidos, como no relatório original)" + (soInterna() ? "." : ", sem a operação interna."),
+                    aoClicar: function () { abrir({}, "Ticket médio"); } })];
   ["ES", "BA", "RJ"].forEach(function (k) {
     var r = L.regiaoDeK(k), v = atual.reg[k];
     k2.push(L.kpi({ icone: "etiqueta", rot: "Ticket " + r.longo.replace("Equipes ", "equipes "), valor: v.ticket, fmt: function (x) { return L.fBRL(x, 2); }, classe: CLASSE_REG[k] + (v.q ? "" : " zero"),
@@ -79,8 +109,10 @@ function render(raiz) {
   });
   k2.push(L.kpi({ icone: "prancheta", rot: "Pedidos", valor: t.q, fmt: L.fInt, classe: t.q ? "" : "zero",
     cmp: cmpDe(function (x) { return x.tot.q; }),
-    leg: sub("Operação interna", L.fInt(atual.reg.INTERNA.q)),
-    aoClicar: function () { L.abrirPedidos({}, "Pedidos"); } }));
+    leg: soInterna() ? null : sub("Operação interna (fora)", L.fInt(atual.reg.INTERNA.q)),
+    ajuda: soInterna() ? null : "Pedidos do período, sem a operação interna (o número dela fica embaixo, à parte).",
+    aoClicar: function () { abrir({}, "Pedidos"); } }));
+  k2.push(cartaoPositivacao(p, cmp));
   raiz.appendChild(L.kpis.apply(null, k2));
 
   /* o que não entra em nenhum cartão regional (FARMA, INATIVO, supervisor novo) não some */
@@ -104,12 +136,63 @@ function render(raiz) {
   grade.appendChild(painelRcas(p, t));
 }
 
+/* ------------------------------ positivação (pedido do Júlio, 2026-11-13) ------------------------------ */
+/* Clientes diferentes com pedido no recorte, sem a operação interna. O pacote do navegador não tem o
+   cliente (cliente distinto não se soma de pedaços), então a conta vem do banco (/api/positivacao),
+   com os mesmos filtros e os mesmos períodos das comparações. Guarda a última resposta de cada recorte:
+   no redesenho ao vivo o número fica na tela enquanto a conta nova chega. */
+var cachePos = new Map();
+function versaoDados() { return Object.keys(L.PAC).sort().map(function (k) { return k + ":" + L.PAC[k].versao; }).join("|"); }
+function urlPositivacao(p, cmp) {
+  var f = L.estado.filtros, q = ["de=" + L.isoDeDia(p.de), "ate=" + L.isoDeDia(p.ate)];
+  function lista(k, arr) { if (arr && arr.length) q.push(k + "=" + encodeURIComponent(arr.join(","))); }
+  lista("uf", (f.uf || []).map(L.ufDeId));
+  lista("sup", f.sup); lista("fil", f.fil); lista("rca", f.rca);
+  lista("reg", regioesDaVenda().map(function (id) { return L.REGIOES[id - 1].k; }));
+  if (cmp.pa) q.push("pa=" + L.isoDeDia(cmp.pa.de) + "," + L.isoDeDia(cmp.pa.ate));
+  if (cmp.aa) q.push("aa=" + L.isoDeDia(cmp.aa.de) + "," + L.isoDeDia(cmp.aa.ate));
+  var r = f.regiao || [];
+  if (!soInterna() && (!r.length || r.indexOf(ID_INTERNA) >= 0)) q.push("interna=1");   // os clientes dela, à parte
+  return "api/positivacao?" + q.join("&");
+}
+function montarPositivacao(d, cmp, erro) {
+  var v = d ? +d.clientes : null, num = function (x) { return x == null ? null : +x; };
+  return L.kpi({ icone: "pessoas", rot: "Positivação", valor: v, fmt: L.fInt,
+    texto: d ? null : erro ? "—" : "…",
+    classe: d ? (v ? "" : "zero") : "zero",
+    cmp: d ? { pa: num(d.pa), aa: num(d.aa), cmp: cmp } : null,
+    leg: erro ? L.h("span", { class: "sub", text: "Não consegui contar agora" })
+         : d && d.interna != null ? L.h("span", { class: "sub", html: "Operação interna (fora) <b>" + L.esc(L.fInt(+d.interna)) + "</b>" }) : null,
+    ajuda: "Clientes diferentes com pedido no período (a positivação da 146)" + (soInterna() ? "" : ", sem a operação interna") +
+           ". Conta feita no banco com os filtros da tela.",
+    aoClicar: function () { abrir({}, "Positivação"); } });
+}
+function cartaoPositivacao(p, cmp) {
+  var url = urlPositivacao(p, cmp), ver = versaoDados(), c = cachePos.get(url);
+  var el = montarPositivacao(c ? c.d : null, cmp);
+  if (c && c.ver === ver) return el;
+  fetch(url, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : L.erroHttp(r, "a positivação"); }).then(function (d) {
+    cachePos.delete(url); cachePos.set(url, { ver: ver, d: d });
+    if (cachePos.size > 60) cachePos.delete(cachePos.keys().next().value);
+    if (!el.isConnected) return;
+    var antes = L.semAnimar;
+    L.semAnimar = !!c;                         // já havia número na tela: troca sem contar de novo
+    var novo = montarPositivacao(d, cmp);
+    L.semAnimar = antes;
+    el.replaceWith(novo); el = novo;
+  }, function () {
+    if (!el.isConnected || c) return;          // com o número anterior na tela, fica ele
+    var novo = montarPositivacao(null, cmp, true); el.replaceWith(novo); el = novo;
+  });
+  return el;
+}
+
 /* ------------------------------ hoje e semana ------------------------------ */
 /* Como no original: hoje por UF ignora o período e o filtro de UF (respeita equipe, filial e
    RCA); a semana (segunda a hoje) ignora o período e respeita a UF. */
 function painelHoje() {
   var hoje = L.hojeDia(), seg = L.segundaDe(hoje);
-  var idx = L.filtrar(L.spec({ de: hoje, ate: hoje, sem: ["uf"] }));
+  var idx = L.filtrar(specVenda({ de: hoje, ate: hoje, sem: ["uf"] }));
   var tot = L.somar(idx);
   var porUf = L.agrupar(idx, function (i) { return L.R.u[i]; }).sort(function (a, b) { return b.v - a.v; });
   var fixas = ["ES", "BA", "RJ"].map(function (u) { var id = L.ufId(u); return porUf.filter(function (g) { return g.k === id; })[0] || { k: id, v: 0, q: 0 }; });
@@ -117,19 +200,19 @@ function painelHoje() {
   var linhas = fixas.concat(outras.length ? [{ k: -1, v: outras.reduce(function (s, g) { return s + g.v; }, 0), q: outras.reduce(function (s, g) { return s + g.q; }, 0), outras: outras }] : []);
   var max = Math.max.apply(null, linhas.map(function (g) { return g.v; }).concat([1]));
   var ult = L.META.ult_pedido, ateHora = ult && ult.slice(0, 10) === L.isoDeDia(hoje) ? " · último pedido às " + ult.slice(11, 16) : "";
-  var semana = L.somar(L.filtrar(L.spec({ de: seg, ate: hoje })));
+  var semana = L.somar(L.filtrar(specVenda({ de: seg, ate: hoje })));
 
   var el = L.painel({ titulo: "Hoje", sub: L.DIAS_SEMANA[L.dowDe(hoje)] + ", " + L.fDia(hoje) + " · por UF do cliente", classe: "c-4" });
   var v = L.h("div", { class: "v num" });
   L.contar(v, tot.v, L.fR);
   el.corpo.appendChild(L.h("div", { class: "hoje-topo" }, L.h("div", null, v, L.h("small", { text: L.fInt(tot.q) + " pedido" + (tot.q === 1 ? "" : "s") + ateHora })),
-    L.h("button", { class: "mini-btn", type: "button", html: L.ic("tabela") + " Pedidos", onclick: function () { L.abrirPedidos({ periodo: { r: "hoje" }, f: { uf: [] } }, "Hoje"); } })));
+    L.h("button", { class: "mini-btn", type: "button", html: L.ic("tabela") + " Pedidos", onclick: function () { abrir({ periodo: { r: "hoje" }, f: { uf: [] } }, "Hoje"); } })));
   var lista = L.h("div", { class: "hoje-ufs" });
   linhas.forEach(function (g) {
     var sigla = g.k === -1 ? "+" + outras.length : L.ufDeId(g.k);
     var nome = g.k === -1 ? "Outras UFs: " + g.outras.map(function (o) { return L.ufDeId(o.k) || "sem UF"; }).join(", ") : (L.NOMES_UF[sigla] || sigla);
     var b = L.h("button", { class: "hoje-uf", type: "button", title: nome + " — clique para ver os pedidos de hoje",
-      onclick: function () { L.abrirPedidos({ periodo: { r: "hoje" }, f: { uf: g.k === -1 ? g.outras.map(function (o) { return o.k; }) : [g.k] } }, "Hoje · " + nome); } },
+      onclick: function () { abrir({ periodo: { r: "hoje" }, f: { uf: g.k === -1 ? g.outras.map(function (o) { return o.k; }) : [g.k] } }, "Hoje · " + nome); } },
       L.h("span", { class: "sg", text: sigla }),
       L.h("span", { class: "br" }, L.h("i", { style: { width: (g.v > 0 ? Math.max(2, g.v / max * 100) : 0).toFixed(1) + "%", background: g.k === L.ufId("ES") ? "var(--d1)" : g.k === L.ufId("BA") ? "var(--d4)" : g.k === L.ufId("RJ") ? "var(--d3)" : "var(--d8)" } })),
       L.h("span", { class: "vv num", html: L.esc(L.fR(g.v)) + "<small>" + L.fInt(g.q) + " ped.</small>" }));
@@ -137,7 +220,7 @@ function painelHoje() {
   });
   el.corpo.appendChild(lista);
   el.corpo.appendChild(L.h("button", { class: "semana", type: "button", title: "Clique para ver os pedidos da semana",
-    onclick: function () { L.abrirPedidos({ periodo: { r: "semana" } }, "Semana"); } },
+    onclick: function () { abrir({ periodo: { r: "semana" } }, "Semana"); } },
     L.h("span", { class: "r", html: "Semana<small>" + L.esc(L.fDiaCurto(seg) + " a " + L.fDiaCurto(hoje) + " · " + L.fInt(semana.q) + " pedidos") + "</small>" }),
     L.h("span", { class: "v num", text: L.fR(semana.v) })));
   return el;
@@ -146,7 +229,7 @@ function painelHoje() {
 /* ------------------------------ participação por UF do cliente ------------------------------ */
 function painelUf(p) {
   var temFiltroUf = (L.estado.filtros.uf || []).length > 0;
-  var idx = L.filtrar(L.spec({ sem: ["uf"] }));
+  var idx = L.filtrar(specVenda({ sem: ["uf"] }));
   var tot = L.somar(idx).v;
   var g = L.agrupar(idx, function (i) { return L.R.u[i]; }).filter(function (x) { return x.v; }).sort(function (a, b) { return b.v - a.v; });
   var el = L.painel({ titulo: "Participação por UF do cliente", sub: "Pela cidade do cliente · " + p.rot + (temFiltroUf ? " · sobre todas as UFs (o filtro de UF não muda esta conta)" : ""), classe: "c-8" });
@@ -157,7 +240,7 @@ function painelUf(p) {
     var uf = L.ufDeId(x.k), pct = tot ? x.v / tot : 0;
     var barra = L.h("i", { style: { width: "0%", "--cor": cores[uf] || "var(--d8)" } });
     lista.appendChild(L.h("button", { class: "uf-linha" + (n === 0 ? " top1" : ""), type: "button", title: "Clique para ver os pedidos de clientes " + (uf ? "de " + uf : "sem UF"),
-      onclick: function () { L.abrirPedidos({ f: { uf: [x.k] } }, "Clientes " + (uf || "sem UF")); },
+      onclick: function () { abrir({ f: { uf: [x.k] } }, "Clientes " + (uf || "sem UF")); },
       onmousemove: function (ev) { L.dica.mostrar(ev, { titulo: (uf || "Sem UF") + (L.NOMES_UF[uf] ? " · " + L.NOMES_UF[uf] : ""), linhas: [
         { rot: "Venda", val: L.fBRL(x.v, 2) }, { rot: "Participação", val: L.fPct(pct, 2) }, { rot: "Pedidos", val: L.fInt(x.q) }, { rot: "Ticket médio", val: L.fBRL(x.ticket, 2) }],
         clique: "Clique para abrir os pedidos" }); },
@@ -177,9 +260,9 @@ function painelUf(p) {
 function painelMes() {
   var hoje = L.hojeDia(), de = L.primeiroDoMes(hoje), n = hoje - de + 1;
   var tot = new Array(n).fill(0), es = new Array(n).fill(0), qd = new Array(n).fill(0), idEs = L.ufId("ES");
-  var idx = L.filtrar(L.spec({ de: de, ate: hoje })), R = L.R, k, i;
+  var idx = L.filtrar(specVenda({ de: de, ate: hoje })), R = L.R, k, i;
   for (k = 0; k < idx.length; k++) { i = idx[k]; tot[R.d[i] - de] += R.v[i]; qd[R.d[i] - de] += R.q[i]; }
-  var idxEs = L.filtrar(L.spec({ de: de, ate: hoje, sem: ["uf"] }));
+  var idxEs = L.filtrar(specVenda({ de: de, ate: hoje, sem: ["uf"] }));
   for (k = 0; k < idxEs.length; k++) { i = idxEs[k]; if (R.u[i] === idEs) es[R.d[i] - de] += R.v[i]; }
   var cats = []; for (k = 0; k < n; k++) cats.push(L.fDiaCurto(de + k));
   var C = L.cores();
@@ -197,7 +280,7 @@ function painelMes() {
                  { rot: "Pedidos", val: L.fInt(qd[j]) }, { rot: "Ticket médio", val: L.fBRL(qd[j] ? tot[j] / qd[j] : null, 2) }],
         clique: "Clique para ver os pedidos do dia" };
     },
-    aoClicar: function (j) { var iso = L.isoDeDia(de + j); L.abrirPedidos({ periodo: { r: "livre", de: iso, ate: iso } }, "Dia " + L.fDia(de + j)); },
+    aoClicar: function (j) { var iso = L.isoDeDia(de + j); abrir({ periodo: { r: "livre", de: iso, ate: iso } }, "Dia " + L.fDia(de + j)); },
   };
   L.fila.push(function () { L.graf.linhas(box, cfg); });
   return el;
@@ -205,7 +288,7 @@ function painelMes() {
 
 /* ------------------------------ RCAs por ticket médio ------------------------------ */
 function painelRcas(p, tot) {
-  var idx = L.filtrar(L.spec()), R = L.R, m = new Map();
+  var idx = L.filtrar(specVenda()), R = L.R, m = new Map();
   for (var k = 0; k < idx.length; k++) {
     var i = idx[k], ch = R.c[i] + "|" + R.u[i], g = m.get(ch);
     if (!g) { g = { cod: R.c[i], uId: R.u[i], v: 0, q: 0, l: 0, sups: new Map() }; m.set(ch, g); }
@@ -235,7 +318,7 @@ function painelRcas(p, tot) {
     totais: function () { return [
       { rot: "Vendas", valor: L.fBRL(tot.v, 2), pri: true }, { rot: "Pedidos", valor: L.fInt(tot.q) },
       { rot: "Ticket médio", valor: L.fBRL(tot.ticket, 2) }, { rot: "% de lucro", valor: L.fPct(tot.pctLucro, 2) }]; },
-    aoClicar: function (r) { L.abrirPedidos({ f: { rca: [r.cod], uf: [r.uId] } }, r.nome + " · " + r.uf); },
+    aoClicar: function (r) { abrir({ f: { rca: [r.cod], uf: [r.uId] } }, r.nome + " · " + r.uf); },
     vazio: "Nenhum pedido no período com os filtros atuais.",
   }));
   return el;
